@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>Gerenciamento de Frota</title>
+    <style>
+        /* Estilização Global */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #f4f6fb, #eaf0f9);
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #004d99;
+            margin: 20px;
+            font-size: 2.5em;
+            text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Container Principal */
+        .diagram-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px;
+        }
+
+        /* Blocos Individuais */
+        .block {
+            background-color: #ffffff;
+            border: 1px solid #cce4f7;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            width: 250px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .block:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .car {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #004d99;
+            margin-bottom: 5px;
+            text-shadow: 0px 2px 4px rgba(0, 77, 153, 0.3);
+        }
+
+        .plate {
+            background-color: #ffcc00;
+            color: #333;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-radius: 5px;
+            padding: 5px;
+            display: inline-block;
+            margin: 5px 0 15px;
+        }
+
+        /* Labels e Inputs */
+        .field-label {
+            font-size: 0.9em;
+            color: #004d99;
+            margin-bottom: 5px;
+            text-align: left;
+            display: block;
+        }
+
+        .editable {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #99c2e6;
+            background-color: #f9fcff;
+            border-radius: 5px;
+            font-size: 0.9em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+            color: #333;
+        }
+
+        .editable:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+
+        /* Botão de Salvar */
+        button {
+            display: block;
+            margin: 30px auto;
+            padding: 10px 25px;
+            background-color: #00b35f;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #008a47;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <h1>Gerenciamento de Frota</h1>
+    <div class="diagram-container" id="diagram-container"></div>
+    <button onclick="saveData()">Salvar Dados</button>
+
+    <!-- Firebase Compatível com Namespace -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXWPVnftoiNhRTz4EJOpvzxFeKC7hICEw",
+            authDomain: "index-76f4d.firebaseapp.com",
+            databaseURL: "https://index-76f4d-default-rtdb.firebaseio.com",
+            projectId: "index-76f4d",
+            storageBucket: "index-76f4d.firebasestorage.app",
+            messagingSenderId: "755349326603",
+            appId: "1:755349326603:web:0ca53d57f4eaa962a8b00e",
+            measurementId: "G-BVCHSK1V7H"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Adiciona os carros
+        const cars = [
+            { name: "Strada 01", plate: "BCQ - 6753" },
+            { name: "Strada 03", plate: "BCQ - 6635" },
+            { name: "Strada 05", plate: "BCQ - 7388" },
+            { name: "Strada 06", plate: "BCQ - 7334" },
+            { name: "Saveiro 14", plate: "SEX - 1B89" },
+            { name: "Strada 20", plate: "BEP - 3J79" },
+            { name: "Strada 22", plate: "FKH - 5I25" },
+            { name: "Strada 23", plate: "BCA - 9H62" },
+            { name: "Master 24", plate: "SEV - 1E84" },
+            { name: "Master 26", plate: "RHN - 6J20" },
+            { name: "Fiorino 27", plate: "RGB - 5C51" },
+            { name: "Fiorino 29", plate: "RFO - 4B04" }
+        ];
+
+        const container = document.getElementById("diagram-container");
+
+        // Função para carregar os blocos
+        function loadBlocks() {
+            cars.forEach((car, index) => {
+                const block = document.createElement("div");
+                block.className = "block";
+                block.innerHTML = `
+                    <div class="car">${car.name}</div>
+                    <div class="plate">${car.plate}</div>
+                    <label class="field-label">Motorista:</label>
+                    <input type="text" class="editable" id="motorista-${index}">
+                    <label class="field-label">Passageiro 1:</label>
+                    <input type="text" class="editable" id="passageiro1-${index}">
+                    <label class="field-label">Passageiro 2:</label>
+                    <input type="text" class="editable" id="passageiro2-${index}">
+                    <label class="field-label">Status:</label>
+                    <input type="text" class="editable" id="status-${index}">
+                    <label class="field-label">Saída 1:</label>
+                    <input type="datetime-local" class="editable" id="saida1-${index}">
+                    <label class="field-label">Chegada:</label>
+                    <input type="datetime-local" class="editable" id="chegada-${index}">
+                    <label class="field-label">Saída 2:</label>
+                    <input type="datetime-local" class="editable" id="saida2-${index}">
+                `;
+                container.appendChild(block);
+
+                // Recuperar dados do Firebase
+                database.ref(`carros/${index}`).once("value")
+                    .then(snapshot => {
+                        const data = snapshot.val();
+                        if (data) {
+                            document.getElementById(`motorista-${index}`).value = data.motorista || "";
+                            document.getElementById(`passageiro1-${index}`).value = data.passageiro1 || "";
+                            document.getElementById(`passageiro2-${index}`).value = data.passageiro2 || "";
+                            document.getElementById(`status-${index}`).value = data.status || "";
+                            document.getElementById(`saida1-${index}`).value = data.saida1 || "";
+                            document.getElementById(`chegada-${index}`).value = data.chegada || "";
+                            document.getElementById(`saida2-${index}`).value = data.saida2 || "";
+                        }
+                    })
+                    .catch(error => console.error(`Erro ao carregar dados do carro ${index}:`, error));
+            });
+        }
+
+        // Função para salvar os dados
+        function saveData() {
+            cars.forEach((_, index) => {
+                const carData = {
+                    motorista: document.getElementById(`motorista-${index}`).value,
+                    passageiro1: document.getElementById(`passageiro1-${index}`).value,
+                    passageiro2: document.getElementById(`passageiro2-${index}`).value,
+                    status: document.getElementById(`status-${index}`).value,
+                    saida1: document.getElementById(`saida1-${index}`).value,
+                    chegada: document.getElementById(`chegada-${index}`).value,
+                    saida2: document.getElementById(`saida2-${index}`).value
+                };
+
+                database.ref(`carros/${index}`).set(carData)
+                    .then(() => console.log(`Dados do carro ${index} salvos com sucesso.`))
+                    .catch(error => console.error(`Erro ao salvar dados do carro ${index}:`, error));
+            });
+        }
+
+        loadBlocks();
+    </script>
+</body>
+</html>
